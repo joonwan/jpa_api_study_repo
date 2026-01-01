@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -15,6 +17,37 @@ import javax.validation.Valid;
 public class MemberApiController {
 
     private final MemberService memberService;
+
+    /**
+     * 문제점 : 응답 값으로 entity 를 직접 외부에 노출함.
+     *
+     * entity 를 직접 반환하게 되면 외부에 entity 정보가 외부로 노출됨
+     * 만약 외부로 노출하고 싶지 않은 필드의 경우 entity 에 @JsonIgnore 를 사용하면 됨.
+     * 하지만 회원과 관련된 다른 api 에서 해당 json ignore 한 필드가 필요할 경우 문제가 발생함.
+     *
+     * 또한 entity 필드명 변경시 api spec  또한 변경됨.
+     * 즉 entity 에 presentation 계층의 로직이 녹아버림.
+     * 그리고 list 를 그대로 반환해버리면 list 개수 등 추가적인 정보를 더 넣지 못함.
+     */
+    @GetMapping("/v1/members")
+    public List<Member> membersV1() {
+        return memberService.findMembers();
+    }
+
+    /**
+     * 필요한 부분만 노출해야  외부 때문에 내부로직을 변경 못하는 상황을 방지할 수 있음.
+     * 그리고 entity 가 그대로 나가버리면 유지보수 하기 너무 빡셈
+     * 한번 감싸기 때문에 api spec 확장이 가능함 -> 회원 수 필드 추가 등등 ...
+     */
+    @GetMapping("/v2/members")
+    public Result<List<MemberDto>> membersV2() {
+        List<MemberDto> members = memberService.findMembers()
+                .stream()
+                .map(m -> new MemberDto(m.getName()))
+                .collect(Collectors.toList());
+
+        return new Result(members);
+    }
 
     /**
      *
@@ -96,6 +129,18 @@ public class MemberApiController {
     @AllArgsConstructor// dto 에는 lombok annotation 막 써도 되지만 entity 에는 getter 정도만 사용 ...
     static class UpdateMemberResponse {
         private Long id;
+        private String name;
+    }
+
+    @Data
+    @AllArgsConstructor
+    static class Result<T> {
+        private T data;
+    }
+
+    @Data
+    @AllArgsConstructor
+    static class MemberDto {
         private String name;
     }
 }
