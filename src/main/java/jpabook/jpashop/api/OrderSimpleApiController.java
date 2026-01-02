@@ -5,6 +5,8 @@ import jpabook.jpashop.domain.Order;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.OrderSimpleQueryDto;
+import jpabook.jpashop.repository.order.simplequery.OrderSimpleQueryRepository;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +24,20 @@ import static java.util.stream.Collectors.*;
  * Order
  * Order -> Member
  * Order -> Delivery
+ *
+ * 쿼리 방식 진행 순서
+ *
+ * 1. 우선 entity 를 dto 로 변환하는 방식을 사용하자
+ * 2. 필요시 fetch join 으로 성능 최적화 하 -> 대부분의 성능 이슈가 해결된다.
+ * 3. 그래도 안되면 DTO 로 직접 조회하는 방식을 사용하자.
+ * 4. 최후의 방법에서는 JPA 에서 제공하는 Native SQL 이나 Spring JDBC Template 를 사용햐 SQL 을 직접 사용하자.
  */
 @RestController
 @RequiredArgsConstructor
 public class OrderSimpleApiController {
 
     private final OrderRepository orderRepository;
+    private final OrderSimpleQueryRepository orderSimpleQueryRepository;
 
     /**
      * 문제점
@@ -80,6 +90,21 @@ public class OrderSimpleApiController {
                 .stream()
                 .map(SimpleOrderDto::new)
                 .collect(toList());
+    }
+
+    /**
+     * dto 변환 없이 JPA 에서 바로 DTO 로 조회해서 꺼내버리기
+     * 조금더 성능 최적화가 됨. -> 원하는 데이터만 가져오기 때문임
+     * 하지만 재사용성이 v3 보다는 떨어짐 그리고 v3 과 v4 가 크게 성능차이가 나지 않음
+     * 만약 너무 많이 트래픽이 몰리는 api 일 경우에는 v4 를 고민해볼 필요가 있음
+     *
+     * orderRepository 는 entity 조회용 -> 최적화를 위해서 fetch join 정도 까지만
+     * 통계용 APi 등 복잡한 api 구현시 화면에 fit 하게 최적하 하기 위해서 DTO 로 바로 조회시에는 별도의 QueryRepository 로 해당 로직을 분리 시켜 유지보수성을 향상 시키자.
+     * @return
+     */
+    @GetMapping("/api/v4/simple-orders")
+    public List<OrderSimpleQueryDto> orderV4() {
+        return orderSimpleQueryRepository.findOrderDtos();
     }
 
     @Data

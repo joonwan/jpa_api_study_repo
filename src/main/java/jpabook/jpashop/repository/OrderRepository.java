@@ -128,5 +128,27 @@ public class OrderRepository {
                 .setMaxResults(limit)
                 .getResultList();
     }
+
+    /**
+     * 일반 join 방식
+     * entity 가 아니기 때문에 영속성 context 에서 관리되는 객체가 아님
+     *
+     * 그리고 OrderSimpleQueryDto 자체가 결국 API Spec 임.
+     * 결국 API spec 이 repository 계층에 들어와 있는 꼴
+     *
+     * Tip
+     * repository 계층 하위에 별도의 쿼리용 pacakge 를 하나 만듬
+     * 거기에 최적화 쿼리 전용 Repository 를 생성
+     *
+     * 즉 Entity 조회 repository 랑 별도 DTO 조회 repository 를 분리시켜 유지보수성을 향상 시킬 수 있음
+     * @return
+     */
+//    public List<OrderSimpleQueryDto> findOrderDtos() {
+//        return em.createQuery("select new jpabook.jpashop.repository.OrderSimpleQueryDto(o.id, m.name, o.orderDate, o.status, d.address)" +
+//                "from Order o" +
+//                " join o.member m" +
+//                " join o.delivery d", OrderSimpleQueryDto.class)
+//                .getResultList();
+//    }
 }
 
